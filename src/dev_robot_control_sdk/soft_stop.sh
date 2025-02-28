@@ -7,6 +7,16 @@ set -e
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 WORKSPACE_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
+# 定义清理函数
+cleanup() {
+    echo "正在关闭所有运行中的机器人控制程序..."
+    pkill -f "robot_control" || echo "未发现正在运行的机器人控制程序"
+    exit 0
+}
+
+# 捕获 SIGINT 信号
+trap cleanup SIGINT
+
 # 检查ROS环境
 if [ -z "$ROS_DISTRO" ]; then
     if [ -f "/opt/ros/noetic/setup.bash" ]; then
@@ -28,7 +38,7 @@ if [ ! -d "${WORKSPACE_DIR}/build" ] || [ ! -d "${WORKSPACE_DIR}/install" ]; the
     cd "${WORKSPACE_DIR}"
     
     # 执行编译
-    if ! colcon build; then
+    if ! catkin_make; then
         echo "错误：工作空间编译失败"
         cd "${CURRENT_DIR}"
         exit 1
@@ -41,13 +51,13 @@ if [ ! -d "${WORKSPACE_DIR}/build" ] || [ ! -d "${WORKSPACE_DIR}/install" ]; the
 fi
 
 # 检查编译输出
-if [ ! -f "${WORKSPACE_DIR}/install/setup.bash" ]; then
+if [ ! -f "${WORKSPACE_DIR}/devel/setup.bash" ]; then
     echo "错误：找不到工作空间的setup.bash文件，编译可能不完整"
     exit 1
 fi
 
 # 设置工作空间环境
-source "${WORKSPACE_DIR}/install/setup.bash"
+source "${WORKSPACE_DIR}/devel/setup.bash"
 
 # 检查并进入控制程序目录
 CONTROL_DIR="${WORKSPACE_DIR}/install/lib/robot_control"
